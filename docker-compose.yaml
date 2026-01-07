@@ -1,0 +1,36 @@
+services:
+  gemini-translator:
+    image: ghcr.io/supotnitskiy/gemini-translator:10.2.4
+    container_name: gemini-translator
+    restart: unless-stopped
+    networks:
+      - internal-net
+    environment:
+      - PUID=1004
+      - PGID=1004
+    volumes:
+      - ./share:/share:rw
+      - ./settings.json:/root/.epub_translator/settings.json:rw
+      - ./config:/app/GeminiTranslator/config:rw
+
+  proxy:
+    image: nginx:alpine
+    container_name: gemini-translator-proxy
+    restart: unless-stopped
+    ports:
+      - "10000:80"
+    networks:
+      - internal-net
+    depends_on:
+      - gemini-translator
+    environment:
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./generate-htpasswd.sh:/docker-entrypoint.d/generate-htpasswd.sh:ro 
+
+
+networks:
+  internal-net:
+    driver: bridge
