@@ -10,7 +10,7 @@ services:
       - PGID=1004
     volumes:
       - ./share:/share:rw
-      - ./settings.json:/root/.epub_translator/settings.json:rw
+      - ./epub_translator:/root/.epub_translator:rw
       - ./config:/app/GeminiTranslator/config:rw
 
   proxy:

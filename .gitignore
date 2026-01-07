@@ -1,1 +1,4 @@
 .env
+epub_translator/*
+config/*
+*.swp
