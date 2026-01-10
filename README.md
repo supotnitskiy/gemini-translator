@@ -10,7 +10,8 @@
 
 создать файл .env  в котором прописать эти параметры
 
-VNC_PASSWORD=ВАШ СЕКРТЕНЫЙ ПАРОЛЬ ДЛЯ VNC
+VNC_PASSWORD=ВАШ СЕКРЕТНЫЙ ПАРОЛЬ ДЛЯ VNC
+
 APP_DIR=GeminiTranslator
 
 потом docker compose up -d
