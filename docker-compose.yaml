@@ -28,7 +28,8 @@ services:
     volumes:
       - ./share:/share:rw
       - ./epub_translator:/root/.epub_translator:rw
-      - ./config:/app/${APP_DIR}/config:rw
+#      - ./config:/app/${APP_DIR}/config:rw
+      - ./GeminiTranslator/config:/app/${APP_DIR}/config:rw
 
 networks:
   internal-net:
