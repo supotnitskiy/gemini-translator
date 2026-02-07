@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dbus-x11 \
     wget \
     fonts-dejavu-core \
+    fonts-noto-cjk \
     locales \
     libgl1 \
     libglib2.0-0 \

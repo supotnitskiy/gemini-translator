@@ -3,3 +3,5 @@ epub_translator/*
 GeminiTranslator/*
 config/*
 *.swp
+share
+*.zip
