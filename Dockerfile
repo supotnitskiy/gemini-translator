@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     fonts-dejavu-core \
     fonts-noto-cjk \
+    fonts-noto-core \
+    fonts-noto-color-emoji \
     locales \
     libgl1 \
     libglib2.0-0 \
