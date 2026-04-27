@@ -8,6 +8,7 @@ ENV DISPLAY=:1
 # ===== system deps =====
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    portaudio19-dev \
     git \
     procps \
     x11vnc \
