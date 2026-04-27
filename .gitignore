@@ -1,6 +1,6 @@
 .env
 epub_translator/*
-GeminiTranslator/*
+GeminiTranslator/
 config/*
 *.swp
 share
