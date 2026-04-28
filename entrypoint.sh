@@ -11,7 +11,8 @@ if [ -z "$VNC_PASSWORD" ]; then
 fi
 
 # Разрешение экрана из переменной окружения (по умолчанию 1280x720 — меньше трафика и задержка в VNC)
-DISPLAY_RESOLUTION="${DISPLAY_RESOLUTION:-1280x720}"
+#DISPLAY_RESOLUTION="${DISPLAY_RESOLUTION:-1280x720}"
+DISPLAY_RESOLUTION="${DISPLAY_RESOLUTION:-1600x900}"
 echo "Using display resolution: $DISPLAY_RESOLUTION"
 
 # Генерируем конфиг X с выбранным разрешением
