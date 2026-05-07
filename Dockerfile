@@ -53,6 +53,7 @@ RUN chmod +x /app/${APP_DIR}/entrypoint.sh
 
 # ===== app =====
 COPY ${APP_DIR}/ /app/${APP_DIR}/
+COPY window_branding.py /app/${APP_DIR}/window_branding.py
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY 10-dummy.conf /etc/X11/xorg.conf.d/
 COPY ${APP_DIR}/requirements.txt /tmp/requirements.txt
