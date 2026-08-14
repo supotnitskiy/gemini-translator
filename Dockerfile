@@ -61,6 +61,7 @@ RUN chmod +x /app/${APP_DIR}/entrypoint.sh
 COPY ${APP_DIR}/ /app/${APP_DIR}/
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY 10-dummy.conf /etc/X11/xorg.conf.d/
+COPY vnc_watchdog.py /app/${APP_DIR}/vnc_watchdog.py
 COPY ${APP_DIR}/requirements.txt /tmp/requirements.txt
 
 # Обновляем pip, чтобы избежать предупреждений и проблем с новыми форматами wheel
