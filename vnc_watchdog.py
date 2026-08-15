@@ -3,25 +3,32 @@
 """
 Watchdog для x11vnc в контейнере gemini-translator.
 
-Проблема: x11vnc на dummy-X постепенно растёт по CPU (~0.1%/мин) и уходит
-в busy-loop (100% CPU), после чего перестаёт принимать VNC-подключения.
+Проблема: x11vnc на dummy-X накапливает CLOSE_WAIT-сокеты от оборвавших
+соединение VNC-клиентов и уходит в busy-loop. Порт 10000 перестаёт
+принимать новые подключения (VNC «мёртв»), хотя процесс ещё жив
+и CPU растёт (иногда лишь до 30-50%).
 
-Решение: каждые CHECK_INTERVAL сек проверяем CPU процесса x11vnc. Если он
-долго держится выше HIGH_CPU_PCT — убиваем процесс (supervisor autorestart
-немедленно поднимет его заново). Не трогает main.py и Xorg.
+Решение (надёжное): каждые CHECK_INTERVAL сек проверяем:
+  1. Доступность VNC-порта 10000 (TCP-connect). Если порт мёртв 2 раза подряд
+     — убиваем x11vnc (supervisor autorestart поднимет заново).
+  2. CPU x11vnc > HIGH_CPU_PCT (запас 50%) — тоже перезапуск.
 
-Запускается supervisor'ом как программа [program:vnc-watchdog].
+Не трогает main.py (переводчик) и Xorg.
+Запускается supervisor'ом как [program:vnc-watchdog].
 """
 import os
-import re
 import time
 import signal
+import socket
 import subprocess
 import logging
 
-CHECK_INTERVAL = 15      # сек
-HIGH_CPU_PCT = 80        # порог CPU
-LONG_ABOVE = 3           # сколько проверок подряд выше порога (45 сек)
+CHECK_INTERVAL = 10       # сек
+PORT = 10000              # VNC-порт
+PORT_CHECK_HOST = "127.0.0.1"
+PORT_DEAD_CONSEC = 2      # сколько проверок порт мёртв подряд перед kill
+HIGH_CPU_PCT = 50         # порог CPU (с запасом, порт умирает раньше 80%)
+HIGH_CPU_CONSEC = 3       # проверок подряд выше порога (30 сек)
 LOG = "/var/log/supervisor/vnc-watchdog.log"
 
 logging.basicConfig(
@@ -32,7 +39,7 @@ log = logging.getLogger("vnc-watchdog")
 
 
 def get_x11vnc():
-    """Вернуть (pid, cpu_float) для процесса x11vnc, иначе (None, None)."""
+    """Вернуть (pid, cpu_float) для x11vnc, иначе (None, None)."""
     try:
         out = subprocess.check_output(
             ["ps", "-eo", "pid,pcpu,comm,args"],
@@ -53,10 +60,20 @@ def get_x11vnc():
     return None, None
 
 
+def port_open():
+    """True, если VNC-порт принимает TCP-подключения."""
+    try:
+        sock = socket.create_connection((PORT_CHECK_HOST, PORT), timeout=2)
+        sock.close()
+        return True
+    except OSError:
+        return False
+
+
 def kill(pid):
     try:
         os.kill(int(pid), signal.SIGKILL)
-        log.info(f"SIGKILL x11vnc pid={pid} (CPU busy-loop)")
+        log.info(f"SIGKILL x11vnc pid={pid}")
         return True
     except ProcessLookupError:
         return True
@@ -66,31 +83,48 @@ def kill(pid):
 
 
 def main():
-    log.info("vnc-watchdog запущен")
-    high_count = 0
+    log.info("vnc-watchdog запущен (порт=%s, HIGH_CPU=%s%%)", PORT, HIGH_CPU_PCT)
+    port_dead = 0
+    cpu_high = 0
     while True:
         try:
             pid, cpu = get_x11vnc()
             if cpu is None:
                 cpu = 0.0
             now = time.strftime("%H:%M:%S")
+
             if pid is None:
-                # x11vnc нет — supervisor его сам поднимет; ничего не делаем
-                log.info(f"{now} x11vnc не найден (pid=None), пропускаю")
-                high_count = 0
-            elif cpu >= HIGH_CPU_PCT:
-                high_count += 1
-                log.warning(
-                    f"{now} x11vnc pid={pid} cpu={cpu:.0f}% "
-                    f"(высокий {high_count}/{LONG_ABOVE})"
-                )
-                if high_count >= LONG_ABOVE:
-                    kill(pid)
-                    high_count = 0
+                log.info(f"{now} x11vnc не найден (supervisor поднимет)")
+                port_dead = 0
+                cpu_high = 0
             else:
-                if high_count:
-                    log.info(f"{now} cpu упал до {cpu:.0f}%, сброс счётчика")
-                high_count = 0
+                # Проверка порта (главный признак зависания)
+                if not port_open():
+                    port_dead += 1
+                    log.warning(
+                        f"{now} порт {PORT} не отвечает "
+                        f"({port_dead}/{PORT_DEAD_CONSEC}), pid={pid} cpu={cpu:.0f}%"
+                    )
+                    if port_dead >= PORT_DEAD_CONSEC:
+                        kill(pid)
+                        port_dead = 0
+                else:
+                    if port_dead:
+                        log.info(f"{now} порт снова отвечает, сброс счётчика")
+                    port_dead = 0
+
+                # Проверка CPU (запасной признак)
+                if cpu >= HIGH_CPU_PCT:
+                    cpu_high += 1
+                    if cpu_high >= HIGH_CPU_CONSEC:
+                        log.warning(
+                            f"{now} CPU {cpu:.0f}% >= {HIGH_CPU_PCT}% "
+                            f"({cpu_high} раза), перезапуск"
+                        )
+                        kill(pid)
+                        cpu_high = 0
+                else:
+                    cpu_high = 0
         except Exception as e:
             log.exception("ошибка в цикле watchdog: %s", e)
         time.sleep(CHECK_INTERVAL)
