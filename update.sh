@@ -5,6 +5,7 @@ set -euo pipefail
 # update.sh — автообновление GeminiTranslator из GitHub релиза
 # ============================================================
 # 1. Определяет тег последнего релиза через GitHub API
+#    (Rasteo123/translatorFork_MOD)
 # 2. Останавливает контейнер (если запущен)
 # 3. Сохраняет config/api_providers.json (страховка)
 # 4. Скачивает Source code (zip) последнего релиза
@@ -24,13 +25,14 @@ cd "$PROJECT_DIR"
 
 # --- 1. Тег последнего релиза ---
 log "Запрос последнего релиза с GitHub API..."
-RELEASE_JSON=$(curl -sSf "https://api.github.com/repos/primalrin/translatorFork_MOD/releases/latest" \
+REPO="Rasteo123/translatorFork_MOD"
+RELEASE_JSON=$(curl -sSf "https://api.github.com/repos/${REPO}/releases/latest" \
     -H "Accept: application/vnd.github+json")
 
 TAG=$(echo "$RELEASE_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['tag_name'])")
-log "Последний тег: ${TAG}"
+log "Последний тег: ${TAG} (источник: ${REPO})"
 
-ZIP_URL="https://github.com/primalrin/translatorFork_MOD/archive/refs/tags/${TAG}.zip"
+ZIP_URL="https://github.com/${REPO}/archive/refs/tags/${TAG}.zip"
 ZIP_FILE="/tmp/translatorFork_MOD-${TAG}.zip"
 EXTRACTED_DIR="translatorFork_MOD-${TAG#v}"   # архив распаковывается в translatorFork_MOD-10.5.22 (без 'v')
 
