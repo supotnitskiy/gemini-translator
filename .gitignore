@@ -5,3 +5,4 @@ config/*
 *.swp
 share
 *.zip
+__pycache__/
